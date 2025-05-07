@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Main Page</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .navbar {
+      background-color: rgba(155, 160, 179, 0.7) !important;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: #758697;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 5px 5px 0 0;
+      transition: background-color 0.3s ease;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+      padding-top: 60px;
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      border: 1px solid #888;
+      width: 60%;
+      padding: 20px;
+      position: relative;
+    }
+
+    .close {
+      position: absolute;
+      right: 25px;
+      top: 10px;
+      color: #000;
+      font-size: 35px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: red;
+      cursor: pointer;
+    }
+
+    input[type=text], textarea, input[type=date] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    .modal-content label {
+      font-weight: bold;
+    }
+
+    #ticketsContainer {
+      margin-top: 20px;
+    }
+
+    .ticket-card {
+      border: 1px solid #ddd;
+      margin-bottom: 20px; /* Separation between rows */
+      border-radius: 8px;
+      padding: 15px;
+      background-color: #f9f9f9;
+    }
+
+    .ticket-card h5 {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .ticket-card p {
+      font-size: 14px;
+    }
+
+    .ticket-id {
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    #searchInput {
+      margin: 10px;
+      padding: 8px;
+      width: 400px;
+    }
+
+    #confirmModal .modal-content {
+      width: 40%;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <h3 class="navbar-brand">Ticket Panel</h3>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>Search Tickets</h2>
+    <input type="text" id="searchInput" oninput="searchTickets()" class="form-control mb-4" placeholder="Search for tickets...">
+    <ul id="searchResults" style="list-style-type: none; padding-left: 0;"></ul>
+
+    <br>
+    <button onclick="openModal()">Upload Tickets</button>
+    
+  </div>
+ 
+  <!-- Upload Modal -->
+  <div id="id01" class="modal">
+    <div class="modal-content animate">
+      <div class="imgcontainer">
+        <span onclick="closeModal()" class="close" title="Close Modal">&times;</span>
+      </div>
+      <div class="container">
+        <form id="ticketForm">
+          <label for="tid">Ticket ID</label>
+          <input type="text" placeholder="Enter Ticket ID" name="tid" required>
+
+          <label for="module">Module</label>
+          <input type="text" placeholder="Enter Module Name" name="module" required>
+
+          <label for="resolver">Resolver</label>
+          <input type="text" placeholder="Enter Resolver Name" name="resolver" required>
+
+          <label for="title">Issue Title</label>
+          <input type="text" placeholder="Enter Title" name="title" required>
+
+          <label for="issueD">Issue Description</label>
+          <textarea name="issueD" placeholder="Enter Issue.." style="height:100px" required></textarea>
+
+          <label for="solp">Solution Provided</label>
+          <textarea name="solp" placeholder="Enter Solution.." style="height:100px" required></textarea>
+
+          <label for="closingDate">Closed Date</label>
+          <input type="date" name="closingDate" id="closingDate" max="{{ current_date }}" required>
+
+          <button type="submit">Upload</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content animate">
+      <span class="close" onclick="closeConfirmModal()">&times;</span>
+      <h4 style="margin-top: 10px;">Please recheck the details.</h4>
+      <p>Once submitted, you won't be able to update the ticket.</p>
+      <div style="text-align: right; margin-top: 20px;">
+        <button onclick="cancelSubmission()" style="background-color: #6c757d;">Cancel</button>
+        <button onclick="submitConfirmed()" style="background-color: #28a745;">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ticketsContainer" class="container"></div>
+
+  <script>
+    const modal = document.getElementById('id01');
+    const form = document.getElementById('ticketForm');
+    const confirmModal = document.getElementById('confirmModal');
+    const ticketsContainer = document.getElementById('ticketsContainer');
+    const searchInput = document.getElementById('searchInput');
+  
+    let formSubmissionData = null;
+    let allTickets = []; // Global array to store all tickets
+  
+    // Open the modal when the user clicks the 'Upload Tickets' button
+    function openModal() {
+      modal.style.display = 'block';
+    }
+  
+    // Close the modal and reset the form
+    function closeModal() {
+      modal.style.display = 'none';
+      form.reset();
+    }
+  
+    // Close confirmation modal
+    function closeConfirmModal() {
+      confirmModal.style.display = 'none';
+      formSubmissionData = null;
+    }
+  
+    // Cancel submission
+    function cancelSubmission() {
+      closeConfirmModal();
+    }
+  
+    // Submit form and show confirmation
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+  
+      formSubmissionData = {
+        ticketID: form.tid.value.trim(),
+        module: form.module.value.trim(),
+        resolver: form.resolver.value.trim(),
+        title: form.title.value.trim(),
+        issue: form.issueD.value.trim(),
+        solution: form.solp.value.trim(),
+        closingDate: form.closingDate.value.trim(),
+      };
+  
+      confirmModal.style.display = 'block';
+    });
+  
+    // Confirm submission, update Excel, and update frontend
+    function submitConfirmed() {
+      fetch('/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formSubmissionData),
+      })
+        .then(response => response.json())
+        .then(result => {
+          console.log('Ticket uploaded:', result);
+          closeModal();
+          closeConfirmModal();
+          fetchTickets(); // Refresh tickets
+        })
+        .catch(error => {
+          console.error('Error uploading ticket:', error);
+        });
+    }
+  
+    // Fetch and store all tickets
+    function fetchTickets() {
+      fetch('/get_tickets')
+        .then(response => response.json())
+        .then(tickets => {
+          allTickets = tickets;
+          renderTickets(allTickets);
+        })
+        .catch(error => {
+          console.error('Error fetching tickets:', error);
+        });
+    }
+  
+    // Render tickets in card-style rows
+    function renderTickets(tickets) {
+      ticketsContainer.innerHTML = '';
+  
+      if (tickets.length === 0) {
+        ticketsContainer.innerHTML = `<div class="text-center text-danger">No match found.</div>`;
+        return;
+      }
+  
+      for (let i = 0; i < tickets.length; i += 3) {
+        const row = document.createElement('div');
+        row.classList.add('row', 'mb-4');
+  
+        const chunk = tickets.slice(i, i + 3);
+        chunk.forEach(ticket => {
+          const col = document.createElement('div');
+          col.classList.add('col-md-4');
+  
+          const card = document.createElement('div');
+          card.classList.add('card', 'mb-3', 'shadow-sm');
+          card.innerHTML = `
+            <div class="card-body">
+              <h5 class="card-title">Ticket ID: ${ticket.ticketID}</h5>
+              <p class="card-text"><strong>Module:</strong> ${ticket.module}</p>
+              <p class="card-text"><strong>Resolver:</strong> ${ticket.resolver}</p>
+              <p class="card-text"><strong>Title:</strong> ${ticket.title}</p>
+              <p class="card-text"><strong>Issue:</strong> ${ticket.issue}</p>
+              <p class="card-text"><strong>Solution:</strong> ${ticket.solution}</p>
+              <p class="card-text"><strong>Closed Date:</strong> ${ticket.closingDate}</p>
+            </div>
+          `;
+          col.appendChild(card);
+          row.appendChild(col);
+        });
+  
+        ticketsContainer.appendChild(row);
+      }
+    }
+  
+    // Search tickets based on input
+    function searchTickets() {
+      const query = searchInput.value.trim().toLowerCase();
+    
+      fetch(`/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(filteredTickets => {
+          renderTickets(filteredTickets);
+        })
+        .catch(error => {
+          console.error('Error during search:', error);
+        });
+    }
+    
+    // Load all tickets on page load
+    window.onload = function () {
+      fetchTickets();
+    };
+  </script>
+  
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
