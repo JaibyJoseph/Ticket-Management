@@ -5,21 +5,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import os
 import datetime
-from waitress import serve  # Importing Waitress
-import webbrowser
+from waitress import serve
 
 app = Flask(__name__)
 
 EXCEL_FILE = "tickets.xlsx"
-SIMILARITY_THRESHOLD = 0.2  # You can tune this
+SIMILARITY_THRESHOLD = 0.2
 
-# Load SentenceTransformer model once
+# Load model once
 model = SentenceTransformer('all-MiniLM-L6-v2')
 print("✅ SentenceTransformer model loaded.")
 
 
 def initialize_excel():
-    """Create Excel file with headers if not exists."""
     if not os.path.exists(EXCEL_FILE):
         wb = Workbook()
         ws = wb.active
@@ -29,14 +27,11 @@ def initialize_excel():
 
 
 def load_data():
-    """Load all ticket data from Excel file."""
     tickets = []
     if not os.path.exists(EXCEL_FILE):
         return tickets
-
     wb = load_workbook(EXCEL_FILE)
     ws = wb.active
-
     for row in ws.iter_rows(min_row=2, values_only=True):
         tickets.append({
             "ticketID": row[0],
@@ -64,7 +59,6 @@ def submit_ticket():
         return jsonify({"error": "No data provided."}), 400
 
     initialize_excel()
-
     new_ticket = [
         data.get("ticketID", ""),
         data.get("module", ""),
@@ -85,49 +79,37 @@ def submit_ticket():
 
 @app.route("/get_tickets", methods=["GET"])
 def get_tickets():
-    tickets = load_data()
-    return jsonify(tickets)
+    return jsonify(load_data())
 
 
 @app.route("/search", methods=["GET"])
 def search_ticket():
     query = request.args.get("q", "").strip()
-    print(f"🔍 Received query: {query}")  # Debug
+    print(f"🔍 Received query: {query}")
 
     tickets = load_data()
-
     if not query:
-        print("ℹ️ Empty query, returning all tickets.")
         return jsonify(tickets)
 
-    # Combine all ticket fields into a searchable text string
     ticket_texts = [
         f"{t['ticketID']} {t['module']} {t['resolver']} {t['title']} {t['issue']} {t['solution']} {t['closingDate']}"
         for t in tickets
     ]
 
-    # Encode query and ticket texts
     query_embedding = model.encode([query])
     ticket_embeddings = model.encode(ticket_texts)
-
-    # Compute cosine similarity scores
     similarities = cosine_similarity(query_embedding, ticket_embeddings)[0]
-    print("📊 Similarity scores:", similarities)
 
-    # Filter results above threshold
     results = [
         (score, ticket) for score, ticket in zip(similarities, tickets)
         if score >= SIMILARITY_THRESHOLD
     ]
     results.sort(key=lambda x: x[0], reverse=True)
-    print(f"✅ Found {len(results)} matching tickets.")
-
     return jsonify([ticket for score, ticket in results])
 
 
 if __name__ == "__main__":
     initialize_excel()
-    url = "http://127.0.0.1:8080"
-    print(f"✅ App running at: {url}")
-    webbrowser.open_new(url)
-    serve(app, host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8080))  # 🔄 Works on Render and locally
+    print(f"✅ App running on port {port}")
+    serve(app, host="0.0.0.0", port=port)
