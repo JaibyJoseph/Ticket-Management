@@ -34,7 +34,7 @@ huggingface-hub==0.30.2
 idna==3.10
 imageio==2.36.1
 ipykernel==6.29.5
-ipython==8.26.0
+ipython==8.25.0
 itsdangerous==2.2.0
 jedi==0.19.1
 Jinja2==3.1.4
@@ -113,7 +113,7 @@ tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3
 transformers==4.51.3
-typing_extensions==4.12.2
+typing_extensions==4.5.0
 tzdata==2024.1
 urllib3==2.2.3
 waitress==3.0.2
