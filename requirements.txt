@@ -113,7 +113,7 @@ tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3
 transformers==4.51.3
-typing_extensions==4.5.0
+typing_extensions==4.6.0
 tzdata==2024.1
 urllib3==2.2.3
 waitress==3.0.2
